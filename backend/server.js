@@ -16,7 +16,7 @@ const LINE_NOTIFY_TOKEN = '3ubQ4j1XrrJ09XLcTnzjTXIhnty1ZP88WaQ7A0Tt7LS';
 const db = mysql.createConnection({
     host: "localhost",
     port: 3306,
-    database: "db",
+    database: "db_project",
     user: "root",
     password: "1234"
 })
@@ -30,8 +30,8 @@ db.connect((error) => {
 
 
 const salt = 5;
-app.post("/register", (req, res) =>{
-    const sql = "INSERT INTO user (`username`, `email`, `password`) VALUES (?)";
+/* app.post("/register", (req, res) =>{
+    const sql = "INSERT INTO member (`username`, `email`, `password`) VALUES (?)";
     bycrypt.hash(req.body.password.toString(), salt, (err, hash) =>{
         if(err) return res.json("Error")
         const values = [req.body.username, req.body.email,hash]
@@ -42,9 +42,35 @@ app.post("/register", (req, res) =>{
                 return res.json(result)
         })
     })
-})
+}) */
+app.post("/register", (req, res) => {
+    const { username, email, password } = req.body;
+
+    // ตรวจสอบว่าข้อมูล email และ password ไม่ว่าง
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email และ Password เป็นข้อมูลที่จำเป็น" });
+    }
+
+    const sql = "INSERT INTO member (`username`, `email`, `password`) VALUES (?)";
+    bycrypt.hash(password.toString(), salt, (err, hash) => {
+        if (err) {
+            console.error("Error hashing password:", err);
+            return res.status(500).json({ error: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+        }
+
+        const values = [username, email, hash];
+        db.query(sql, [values], (err, result) => {
+            if (err) {
+                console.error("Error inserting into database:", err);
+                return res.status(500).json({ error: "เกิดข้อผิดพลาดในการบันทึกข้อมูล" });
+            }
+
+            return res.json({ message: "ลงทะเบียนสำเร็จ", result });
+        });
+    });
+});
 app.post("/login", (req, res) =>{
-    const sql = "SELECT * FROM user WHERE `email` = ?";
+    const sql = "SELECT * FROM member WHERE `email` = ?";
     db.query(sql,[req.body.email], (err, result) =>{
         if(err) return res.json({Error: "Error"})
         else{
